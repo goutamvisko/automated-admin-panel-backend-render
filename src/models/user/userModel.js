@@ -9,14 +9,21 @@ const userSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      // required: true,
       unique: true,
+      sparse: true,
+      required: function () {
+        return this.role === "admin";
+      },
     },
+
     password: {
       type: String,
-      // required: true,
-      select: false, 
+      select: false,
+      required: function () {
+        return this.role === "admin";
+      },
     },
+
 
     dbUri: {
       type: String,
