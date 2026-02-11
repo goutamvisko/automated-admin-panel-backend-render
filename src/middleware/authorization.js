@@ -1,21 +1,22 @@
 import User from "../models/user/userModel.js";
 import jwt from "jsonwebtoken";
-import envConfig from '../config/env.config.js';
+import envConfig from "../config/env.config.js";
 
 export const authenticateUser = async (req, res, next) => {
   try {
     let token;
+
     const authHeader = req.headers.authorization;
+
     if (authHeader && authHeader.startsWith("Bearer ")) {
       token = authHeader.split(" ")[1];
-    } else if (req.cookies && req.cookies.token) {
+    } else if (req.cookies?.token) {
       token = req.cookies.token;
     }
 
     if (!token) {
       return res.status(401).json({
         status: false,
-        statusCode: 401,
         message: "Access denied. No token provided.",
       });
     }
@@ -23,59 +24,56 @@ export const authenticateUser = async (req, res, next) => {
     let decoded;
     try {
       decoded = jwt.verify(token, envConfig.JWT_SECRET);
-      console.log("Decoded Token:", decoded);
-    } catch (jwtError) {
-      if (jwtError.name === "TokenExpiredError") {
+    } catch (err) {
+      if (err.name === "TokenExpiredError") {
         return res.status(401).json({
           status: false,
-          statusCode: 401,
           message: "Token expired. Please login again.",
         });
       }
-      if (jwtError.name === "JsonWebTokenError") {
-        return res.status(401).json({
-          status: false,
-          statusCode: 401,
-          message: "Invalid token.",
-        });
-      }
-      throw jwtError;
+
+      return res.status(401).json({
+        status: false,
+        message: "Invalid token.",
+      });
     }
 
     if (!decoded.userId) {
       return res.status(401).json({
         status: false,
-        statusCode: 401,
         message: "Invalid token payload.",
       });
     }
 
-    const user = await User.findByPk(decoded.userId);
+    const user = await User.findById(decoded.userId).select("-password");
+
     if (!user) {
       return res.status(404).json({
         status: false,
-        statusCode: 404,
         message: "User not found.",
+      });
+    }
+    if (user.status !== "active") {
+      return res.status(403).json({
+        status: false,
+        message: "Account is inactive",
       });
     }
 
     req.user = {
-      userId: user.id,
+      userId: user._id,
       email: user.email,
-      phone: user.phone,
       role: user.role,
+      status: user.status,
     };
-
-    console.log("Authenticated User:", req.user);
 
     next();
   } catch (error) {
     console.error("Authentication Error:", error);
+
     return res.status(500).json({
       status: false,
-      statusCode: 500,
       message: "Internal server error during authentication.",
-      error: envConfig.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -85,19 +83,14 @@ export const authorizeRoles = (...allowedRoles) => {
     if (!req.user || !req.user.role) {
       return res.status(401).json({
         status: false,
-        statuscode: 401,
-        message: "Unauthorized",
+        message: "Unauthorized access. User role not found.",
       });
     }
-
-    console.log("Allowed Roles:", allowedRoles);
-    console.log("User Role:", req.user.role);
 
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({
         status: false,
-        statuscode: 403,
-        message: "not authorized to access this resource",
+        message: "Not authorized to access this resource",
       });
     }
 

@@ -1,8 +1,10 @@
 import crypto from "crypto";
 import { generateApiKey, generateSecretKey } from "../../utils/helper.js";
 import { services } from "../index.js";
+import bcrypt from "bcrypt";
 
 const userService = services.user;
+
 export const createClient = async ({ name, dbUri }) => {
   const existingClient = await userService.findOne({ dbUri });
   if (existingClient) throw new Error("Client already exists");
@@ -20,11 +22,8 @@ export const createClient = async ({ name, dbUri }) => {
   return { client, apiKey, secretKey };
 };
 
-export const loginClient = async ({ apiKey }) => {
-  const apiKeyHash = crypto
-    .createHash("sha256")
-    .update(apiKey)
-    .digest("hex");
+export const clientLoginService = async ({ apiKey }) => {
+  const apiKeyHash = crypto.createHash("sha256").update(apiKey).digest("hex");
 
   const client = await userService.findOne({
     apiKey: apiKeyHash,
@@ -36,9 +35,44 @@ export const loginClient = async ({ apiKey }) => {
   return client;
 };
 
-export const fetchClients = async ({ page, limit, status, name }) => {
+export const adminLoginService = async ({ email, password }) => {
+  const admin = await userService.findOne(
+    { email, role: "admin", status: "active" },
+    { select: "+password" },
+  );
+
+  if (!admin) throw new Error("Invalid credentials");
+
+  const isMatch = await bcrypt.compare(password, admin.password);
+  if (!isMatch) throw new Error("Invalid credentials");
+
+  return admin;
+};
+
+export const resetAdminPasswordService = async ({ adminId, newPassword }) => {
+  const admin = await userService.findOne({
+    _id: adminId,
+    role: "admin",
+    status: "active",
+  });
+
+  if (!admin) throw new Error("Admin not found");
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  await userService.updateById(adminId, {
+    password: hashedPassword,
+  });
+
+  return true;
+};
+
+export const fetchClients = async ({ page, limit, status, name,role }) => {
   const filters = {};
   if (status) filters.status = status;
+  if (role === "admin") {
+    filters.role = { $ne: "admin" }; 
+  }
 
   return userService.findAll({
     filters,
@@ -49,6 +83,9 @@ export const fetchClients = async ({ page, limit, status, name }) => {
     projection: {
       name: 1,
       dbUri: 1,
+      apiKey: 1,
+      secretKey: 1,
+      role: 1,
       status: 1,
       createdAt: 1,
     },

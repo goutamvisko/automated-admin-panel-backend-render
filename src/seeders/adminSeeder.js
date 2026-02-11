@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import User from "../models/user/userModel.js";
 import { generateApiKey, generateSecretKey } from "../utils/helper.js";
+import bcrypt from "bcrypt";
 
 export const seedAdmin = async () => {
   try {
@@ -17,11 +18,14 @@ export const seedAdmin = async () => {
 
     const { apiKey, hashedApiKey } = generateApiKey();
     const { secretKey, hashedSecretKey } = await generateSecretKey();
+  const hashedPassword = await bcrypt.hash("admin@123", 10);
 
     const admin = await User.create({
       name: "admin",
       dbUri: "admin-db-uri",
       role: "admin",
+      email: "admin@gmail.com",
+      password: hashedPassword,
       status: "active",
       apiKey: hashedApiKey,
       secretKey: hashedSecretKey,

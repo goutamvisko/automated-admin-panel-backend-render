@@ -1,19 +1,23 @@
 import {
   createClient,
-  loginClient,
+  clientLoginService,
+  adminLoginService,
   fetchClients,
   updateClientInfo,
   updateClientStatus,
   deleteClient,
-} from "../services/auth/authService.js";
+  resetAdminPasswordService
+} from "../../services/auth/authService.js";
 
-import { successResponse, errorResponse } from "../utils/response.js";
-import { generateToken } from "../utils/helper.js";
+import { successResponse, errorResponse } from "../../utils/response.js";
+import { generateToken } from "../../utils/helper.js";
 
-export const registerClient = async (req, res) => {
+export const addClient = async (req, res) => {
   try {
     const { name, dbUri } = req.body;
-
+    if(!name || !dbUri){
+      return errorResponse(res, "Name and DB URI are required", 400);
+    }
     const { client, apiKey, secretKey } = await createClient({ name, dbUri });
 
     return successResponse(
@@ -21,6 +25,7 @@ export const registerClient = async (req, res) => {
       "Client registered successfully",
       {
         clientId: client._id, 
+        role: client.role,
         name: client.name,
         dbUri: client.dbUri,
         apiKey,
@@ -29,42 +34,47 @@ export const registerClient = async (req, res) => {
       201
     );
   } catch (err) {
+    console.error("Registration error:", err);
     return errorResponse(res, err.message || "Registration failed", 400);
   }
 };
 
-export const clientLogin = async (req, res) => {
+export const login = async (req, res) => {
   try {
-    const { apiKey } = req.body;
+    let user;
 
-    const client = await loginClient({ apiKey });
+    if (req.body.email && req.body.password) {
+      user = await adminLoginService(req.body);
+    } else if (req.body.apiKey) {
+      user = await clientLoginService(req.body);
+    } else {
+      throw new Error("Invalid login payload");
+    }
 
-    const tokenPayload = {
-      userId: client._id, 
-      role: client.role,
-    };
-
-    const token = generateToken(tokenPayload);
+    const token = generateToken({
+      userId: user._id,
+      role: user.role,
+    });
 
     return successResponse(res, "Login successful", {
-      clientId: client._id,
-      name: client.name,
-      dbUri: client.dbUri,
-      apiKey: client.apiKey,
-      secretKey: client.secretKey,
+      userId: user._id,
+      name: user.name,
+      role: user.role,
       token,
     });
   } catch (err) {
+    console.error("Login error:", err);
     return errorResponse(res, err.message || "Login failed", 401);
   }
 };
 
+
 export const getAllClients = async (req, res) => {
   try {
+    const { role } = req.user;
     const { page, limit, status, name } = req.query;
 
-    const data = await fetchClients({ page, limit, status, name });
-
+    const data = await fetchClients({ page, limit, status, name ,role});
     return successResponse(res, "Clients fetched successfully", {
       list: data.rows,
       pagination: {
@@ -93,6 +103,26 @@ export const updateClient = async (req, res) => {
     });
   } catch (err) {
     return errorResponse(res, err.message || "Failed to update client", 400);
+  }
+};
+export const resetAdminPassword = async (req, res) => {
+      console.log("Admin password :", req.body);
+
+  try {
+    const adminId = req.user.userId;
+    console.log("Admin ID for password reset:", adminId);
+    const { newPassword } = req.body;
+
+    if (!newPassword) {
+      return errorResponse(res, "New password is required", 400);
+    }
+
+    await resetAdminPasswordService({ adminId, newPassword });
+
+    return successResponse(res, "Password updated successfully");
+  } catch (err) {
+    console.error("Reset password error:", err);
+    return errorResponse(res, err.message, 400);
   }
 };
 

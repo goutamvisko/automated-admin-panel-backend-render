@@ -7,6 +7,17 @@ const userSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    email: {
+      type: String,
+      // required: true,
+      unique: true,
+    },
+    password: {
+      type: String,
+      // required: true,
+      select: false, 
+    },
+
     dbUri: {
       type: String,
       required: true,
@@ -33,7 +44,7 @@ const userSchema = new mongoose.Schema(
       default: "active",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.model("User", userSchema);
