@@ -7,20 +7,19 @@ class BaseService {
     return this.model.create(data);
   }
 
-async findOne(filter = {}, options = {}) {
-  let query = this.model.findOne(filter);
+  async findOne(filter = {}, options = {}) {
+    let query = this.model.findOne(filter);
 
-  if (options.select) {
-    query = query.select(options.select);
+    if (options.select) {
+      query = query.select(options.select);
+    }
+
+    if (options.projection) {
+      query = query.select(options.projection);
+    }
+
+    return query.lean();
   }
-
-  if (options.projection) {
-    query = query.select(options.projection);
-  }
-
-  return query.lean();
-}
-
 
   async findById(id, projection = {}) {
     return this.model.findById(id, projection).lean();

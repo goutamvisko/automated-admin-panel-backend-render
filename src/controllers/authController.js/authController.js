@@ -7,7 +7,7 @@ import {
   updateClientStatus,
   deleteClient,
   resetAdminPasswordService
-} from "../../services/auth/authService.js";
+} from "../../services/authService/authService.js";
 
 import { successResponse, errorResponse } from "../../utils/response.js";
 import { generateToken } from "../../utils/helper.js";

@@ -1,31 +1,13 @@
-import express from 'express';
-import { authenticateUser, authorizeRoles } from '../../middleware/authorization.js';
+import express from "express";
 import {
-  addClient,
-  login,
-  getAllClients,
-  updateClient,
-  updateClientStatusService,
-  deleteClientService,
-  resetAdminPassword
-} from '../../controllers/auth/authController.js';
-// import { validate, clientRegisterSchema, clientLoginSchema } from "../../validators/user/userValidation.js";
+  createOrUpdateAuthModule,
+} from "../../controllers/moduleController/moduleController.js";
+
+import { authenticateUser, authorizeRoles } from '../../middleware/authorization.js';
 
 const router = express.Router();
 
+router.post("/auth", authenticateUser,authorizeRoles('admin'), createOrUpdateAuthModule);
 
-router.post('/register', addClient);
-
-router.post('/login', login);
-
-router.get('/users', authenticateUser, authorizeRoles('admin'), getAllClients);
-
-router.put('/user/:id', authenticateUser, authorizeRoles('admin'), updateClient);
-
-router.put( "/reset-password",authenticateUser, authorizeRoles('admin'), resetAdminPassword);
-
-router.patch('/user-status/:id', authenticateUser, authorizeRoles('admin'), updateClientStatusService);
-
-router.delete('/user/:id', authenticateUser, authorizeRoles('admin'), deleteClientService);
 
 export default router;
