@@ -74,5 +74,5 @@ const moduleSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
-moduleSchema.index({ clientId: 1 }, { unique: true });
+moduleSchema.index({ clientId: 1, moduleName: 1 }, { unique: true });
 export default mongoose.model("Auth", moduleSchema);

@@ -2,13 +2,13 @@ import express from 'express';
 import { authenticateUser, authorizeRoles } from '../../middleware/authorization.js';
 import {
   addClient,
-  login,
+  adminLogin,
   getAllClients,
   updateClient,
   updateClientStatusService,
   deleteClientService,
   resetAdminPassword
-} from '../../controllers/authController.js/authController.js';
+} from '../../controllers/userController/userController.js';
 // import { validate, clientRegisterSchema, clientLoginSchema } from "../../validators/user/userValidation.js";
 
 const router = express.Router();
@@ -16,16 +16,16 @@ const router = express.Router();
 
 router.post('/register', addClient);
 
-router.post('/login', login);
+router.post('/login', adminLogin);
 
-router.get('/users', authenticateUser, authorizeRoles('admin'), getAllClients);
+router.get('/', authenticateUser, authorizeRoles('admin'), getAllClients);
 
-router.put('/user/:id', authenticateUser, authorizeRoles('admin'), updateClient);
+router.put('/:id', authenticateUser, authorizeRoles('admin'), updateClient);
 
 router.put( "/reset-password",authenticateUser, authorizeRoles('admin'), resetAdminPassword);
 
-router.patch('/user-status/:id', authenticateUser, authorizeRoles('admin'), updateClientStatusService);
+router.patch('/:id', authenticateUser, authorizeRoles('admin'), updateClientStatusService);
 
-router.delete('/user/:id', authenticateUser, authorizeRoles('admin'), deleteClientService);
+router.delete('/:id', authenticateUser, authorizeRoles('admin'), deleteClientService);
 
 export default router;

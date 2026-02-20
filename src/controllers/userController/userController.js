@@ -1,17 +1,16 @@
 import {
   createClient,
-  clientLoginService,
   adminLoginService,
   fetchClients,
   updateClientInfo,
   updateClientStatus,
   deleteClient,
   resetAdminPasswordService
-} from "../../services/authService/authService.js";
+} from "../../services/userService/userService.js";
 
 import { successResponse, errorResponse } from "../../utils/response.js";
 import { generateToken } from "../../utils/helper.js";
-
+import Client from "../../models/user/userModel.js";
 export const addClient = async (req, res) => {
   try {
     const { name, dbUri } = req.body;
@@ -39,17 +38,13 @@ export const addClient = async (req, res) => {
   }
 };
 
-export const login = async (req, res) => {
+export const adminLogin = async (req, res) => {
   try {
     let user;
 
     if (req.body.email && req.body.password) {
       user = await adminLoginService(req.body);
-    } else if (req.body.apiKey) {
-      user = await clientLoginService(req.body);
-    } else {
-      throw new Error("Invalid login payload");
-    }
+    } 
 
     const token = generateToken({
       userId: user._id,
@@ -68,6 +63,36 @@ export const login = async (req, res) => {
   }
 };
 
+export const validateClient = async (req, res) => {
+  try {
+    const { apiKey, secretKey } = req.body;
+
+    if (!apiKey || !secretKey) {
+      return res.status(400).json({ message: "apiKey & secretKey required" });
+    }
+
+    const client = await Client.findOne({ apiKey, secretKey }).lean();
+
+    if (!client) {
+      return res.status(401).json({ message: "Invalid API credentials" });
+    }
+
+    if (client.status !== "active") {
+      return res.status(403).json({ message: "Client inactive" });
+    }
+
+    res.json({
+      clientId: client._id,
+      clientName: client.name,
+      role: client.role,
+      dbUri: client.dbUri,
+      status: client.status,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Validation failed" });
+  }
+};
 
 export const getAllClients = async (req, res) => {
   try {

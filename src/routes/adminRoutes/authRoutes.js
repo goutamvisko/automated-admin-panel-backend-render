@@ -1,13 +1,14 @@
 import express from "express";
 import {
   createOrUpdateAuthModule,
-} from "../../controllers/moduleController/moduleController.js";
+  getModuleFeatures
+} from "../../controllers/authController/authController.js";
 
 import { authenticateUser, authorizeRoles } from '../../middleware/authorization.js';
 
 const router = express.Router();
 
-router.post("/auth", authenticateUser,authorizeRoles('admin'), createOrUpdateAuthModule);
-
+router.post("", authenticateUser,authorizeRoles('admin'), createOrUpdateAuthModule);
+router.get("/:clientId/:moduleName", authenticateUser,authorizeRoles('admin'), getModuleFeatures);
 
 export default router;

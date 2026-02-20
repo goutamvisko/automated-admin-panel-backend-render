@@ -6,6 +6,9 @@ class BaseService {
   async create(data) {
     return this.model.create(data);
   }
+  async update(filter, update, options = { new: true }) {
+    return this.model.findOneAndUpdate(filter, update, options).lean();
+  }
 
   async findOne(filter = {}, options = {}) {
     let query = this.model.findOne(filter);
@@ -28,6 +31,8 @@ class BaseService {
   async updateById(id, data, options = { new: true }) {
     return this.model.findByIdAndUpdate(id, data, options).lean();
   }
+
+
 
   async deleteById(id) {
     return this.model.findByIdAndDelete(id);
