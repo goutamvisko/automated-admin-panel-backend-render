@@ -8,7 +8,9 @@ import {
   updateClientStatusService,
   deleteClientService,
   resetAdminPassword,
-  validateClient
+  validateClient,
+  regenerateApiKey,
+  regenerateSecretKey
 } from '../../controllers/userController/userController.js';
 // import { validate, clientRegisterSchema, clientLoginSchema } from "../../validators/user/userValidation.js";
 
@@ -30,5 +32,9 @@ router.put( "/reset-password",authenticateUser, authorizeRoles('admin'), resetAd
 router.patch('/:id', authenticateUser, authorizeRoles('admin'), updateClientStatusService);
 
 router.delete('/:id', authenticateUser, authorizeRoles('admin'), deleteClientService);
+
+router.post('/:id/regenerate-api-key', authenticateUser, authorizeRoles('admin'), regenerateApiKey);
+
+router.post('/:id/regenerate-secret-key', authenticateUser, authorizeRoles('admin'), regenerateSecretKey);
 
 export default router;

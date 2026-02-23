@@ -198,3 +198,60 @@ export const deleteClientService = async (req, res) => {
     return errorResponse(res, err.message || "Failed to delete client", 400);
   }
 };
+
+export const regenerateApiKey = async (req, res) => {
+  try {
+    const { clientId } = req.params;
+
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ message: "Client not found" });
+    }
+
+    const apiKey = "api_" + crypto.randomBytes(32).toString("hex");
+
+    const hashedApiKey = crypto
+      .createHash("sha256")
+      .update(apiKey)
+      .digest("hex");
+
+    client.apiKey = hashedApiKey;
+    await client.save();
+
+    return res.status(200).json({
+      message: "API Key regenerated successfully",
+      apiKey,
+    });
+
+  } catch (err) {
+    console.error("Regenerate API key error:", err);
+    return res.status(500).json({ message: "Failed to regenerate API key" });
+  }
+};
+
+export const regenerateSecretKey = async (req, res) => {
+  try {
+    const { clientId } = req.params;
+
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ message: "Client not found" });
+    }
+
+    const secretKey = crypto.randomBytes(64).toString("hex");
+
+    const hashedSecretKey = await bcrypt.hash(secretKey, 12);
+
+    client.secretKey = hashedSecretKey;
+    await client.save();
+
+    return res.status(200).json({
+      message: "Secret Key regenerated successfully",
+      secretKey,
+    });
+
+  } catch (err) {
+    console.error("Regenerate Secret key error:", err);
+    return res.status(500).json({ message: "Failed to regenerate secret key" });
+  }
+};
