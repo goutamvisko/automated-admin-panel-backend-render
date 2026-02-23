@@ -77,6 +77,10 @@ export const validateClient = async (req, res) => {
       return res.status(401).json({ message: "Invalid API credentials" });
     }
 
+    const match = await bcrypt.compare(secretKey, client.secretKey);
+    if (!match) {
+      return res.status(401).json({ message: "Invalid API credentials" });
+    }
     if (client.status !== "active") {
       return res.status(403).json({ message: "Client inactive" });
     }

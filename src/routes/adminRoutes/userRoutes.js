@@ -7,7 +7,8 @@ import {
   updateClient,
   updateClientStatusService,
   deleteClientService,
-  resetAdminPassword
+  resetAdminPassword,
+  validateClient
 } from '../../controllers/userController/userController.js';
 // import { validate, clientRegisterSchema, clientLoginSchema } from "../../validators/user/userValidation.js";
 
@@ -17,6 +18,8 @@ const router = express.Router();
 router.post('/register', addClient);
 
 router.post('/login', adminLogin);
+
+router.post('/validate',  validateClient);
 
 router.get('/', authenticateUser, authorizeRoles('admin'), getAllClients);
 
