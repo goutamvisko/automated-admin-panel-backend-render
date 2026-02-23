@@ -11,6 +11,9 @@ import {
 import { successResponse, errorResponse } from "../../utils/response.js";
 import { generateToken } from "../../utils/helper.js";
 import Client from "../../models/user/userModel.js";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
+
 export const addClient = async (req, res) => {
   try {
     const { name, dbUri } = req.body;
@@ -71,33 +74,37 @@ export const validateClient = async (req, res) => {
       return res.status(400).json({ message: "apiKey & secretKey required" });
     }
 
-    const clients = await Client.find();
+    // hash incoming apiKey using SHA256
+    const hashedIncomingApiKey = crypto
+      .createHash("sha256")
+      .update(apiKey)
+      .digest("hex");
 
-    let matchedClient = null;
+    const client = await Client.findOne({ apiKey: hashedIncomingApiKey });
 
-    for (const client of clients) {
-      const apiMatch = await bcrypt.compare(apiKey, client.apiKey);
-      const secretMatch = await bcrypt.compare(secretKey, client.secretKey);
-
-      if (apiMatch && secretMatch) {
-        matchedClient = client;
-        break;
-      }
-    }
-
-    if (!matchedClient) {
+    if (!client) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
-    if (matchedClient.status !== "active") {
+
+    const secretMatch = await bcrypt.compare(
+      secretKey,
+      client.secretKey
+    );
+
+    if (!secretMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    if (client.status !== "active") {
       return res.status(403).json({ message: "Client inactive" });
     }
 
-    return res.json({
-      clientId: matchedClient._id,
-      clientName: matchedClient.name,
-      role: matchedClient.role,
-      dbUri: matchedClient.dbUri,
-      status: matchedClient.status,
+    return res.status(200).json({
+      clientId: client._id,
+      clientName: client.name,
+      role: client.role,
+      dbUri: client.dbUri,
+      status: client.status,
     });
 
   } catch (err) {
