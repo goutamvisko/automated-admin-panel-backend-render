@@ -14,7 +14,7 @@ import Client from "../../models/user/userModel.js";
 export const addClient = async (req, res) => {
   try {
     const { name, dbUri } = req.body;
-    if(!name || !dbUri){
+    if (!name || !dbUri) {
       return errorResponse(res, "Name and DB URI are required", 400);
     }
     const { client, apiKey, secretKey } = await createClient({ name, dbUri });
@@ -23,7 +23,7 @@ export const addClient = async (req, res) => {
       res,
       "Client registered successfully",
       {
-        clientId: client._id, 
+        clientId: client._id,
         role: client.role,
         name: client.name,
         dbUri: client.dbUri,
@@ -44,7 +44,7 @@ export const adminLogin = async (req, res) => {
 
     if (req.body.email && req.body.password) {
       user = await adminLoginService(req.body);
-    } 
+    }
 
     const token = generateToken({
       userId: user._id,
@@ -71,39 +71,46 @@ export const validateClient = async (req, res) => {
       return res.status(400).json({ message: "apiKey & secretKey required" });
     }
 
-    const client = await Client.findOne({ apiKey, secretKey }).lean();
+    const clients = await Client.find();
 
-    if (!client) {
-      return res.status(401).json({ message: "Invalid API credentials" });
+    let matchedClient = null;
+
+    for (const client of clients) {
+      const apiMatch = await bcrypt.compare(apiKey, client.apiKey);
+      const secretMatch = await bcrypt.compare(secretKey, client.secretKey);
+
+      if (apiMatch && secretMatch) {
+        matchedClient = client;
+        break;
+      }
     }
 
-    const match = await bcrypt.compare(secretKey, client.secretKey);
-    if (!match) {
-      return res.status(401).json({ message: "Invalid API credentials" });
+    if (!matchedClient) {
+      return res.status(401).json({ message: "Invalid credentials" });
     }
-    if (client.status !== "active") {
+    if (matchedClient.status !== "active") {
       return res.status(403).json({ message: "Client inactive" });
     }
 
-    res.json({
-      clientId: client._id,
-      clientName: client.name,
-      role: client.role,
-      dbUri: client.dbUri,
-      status: client.status,
+    return res.json({
+      clientId: matchedClient._id,
+      clientName: matchedClient.name,
+      role: matchedClient.role,
+      dbUri: matchedClient.dbUri,
+      status: matchedClient.status,
     });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Validation failed" });
+    console.error("VALIDATE ERROR:", err);
+    return res.status(500).json({ message: "Validation failed" });
   }
 };
-
 export const getAllClients = async (req, res) => {
   try {
     const { role } = req.user;
     const { page, limit, status, name } = req.query;
 
-    const data = await fetchClients({ page, limit, status, name ,role});
+    const data = await fetchClients({ page, limit, status, name, role });
     return successResponse(res, "Clients fetched successfully", {
       list: data.rows,
       pagination: {
@@ -120,7 +127,7 @@ export const getAllClients = async (req, res) => {
 
 export const updateClient = async (req, res) => {
   try {
-    const { id } = req.params; 
+    const { id } = req.params;
     const { name, dbUri } = req.body;
 
     const client = await updateClientInfo(id, { name, dbUri });
@@ -135,7 +142,7 @@ export const updateClient = async (req, res) => {
   }
 };
 export const resetAdminPassword = async (req, res) => {
-      console.log("Admin password :", req.body);
+  console.log("Admin password :", req.body);
 
   try {
     const adminId = req.user.userId;
